@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Painel WhatsApp</title>
+<style>
+:root{
+  --bg:#e9eeec; --surface:#ffffff; --ink:#1c2b33; --muted:#5d6b72; --line:#d3dcd9;
+  --accent:#0d6b58; --accent-ink:#ffffff; --accent-soft:#dcefe9;
+  --in-bubble:#ffffff; --in-border:#c9d6d2; --out-bubble:#d9f2dc; --out-border:#b5dcbb;
+  --pend-bg:#fff6dc; --pend-line:#e2b93b;
+  --alta:#b42318; --normal:#1f5fa8; --baixa:#6b7380;
+  --danger:#b42318; --danger-soft:#fde8e6; --warn-ink:#7a1a12;
+  --orange:#9a5b00; --orange-soft:#fdeecb; --orange-ink:#7a4700;
+  --radius-lg:14px; --radius-sm:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1719; --surface:#182326; --ink:#e6eeec; --muted:#9db0ac; --line:#2b3a3d;
+    --accent:#3fb39a; --accent-ink:#06231d; --accent-soft:#16352f;
+    --in-bubble:#1f2c2f; --in-border:#33464a; --out-bubble:#1e3b2c; --out-border:#2f5a42;
+    --pend-bg:#2e2712; --pend-line:#b8901f;
+    --alta:#ff7b6e; --normal:#79aef0; --baixa:#a3abb6;
+    --danger:#ff7b6e; --danger-soft:#3a1d1a; --warn-ink:#ffc2bb;
+    --orange:#e3a23d; --orange-soft:#3a2d12; --orange-ink:#ffd98a;
+  }
+  .badge{color:#0f1719}
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 120px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Avenir Next","Avenir","Nunito Sans",-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+.wrap{max-width:720px;margin:0 auto;padding:0 14px 40px}
+button{font:inherit;cursor:pointer;border-radius:var(--radius-sm);min-height:46px;padding:10px 14px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0 4px}
+.topbar h1{font-size:18px;margin:0}
+.btn-sair{min-height:36px;padding:6px 12px;font-size:14px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:8px 0 10px;border-bottom:1px solid var(--line)}
+.nav{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+.nav .counter{text-align:center;font-size:14px;color:var(--muted);line-height:1.3}
+.nav .counter b{color:var(--ink);font-size:16px;display:block}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.tools button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.avisos{background:var(--danger-soft);color:var(--warn-ink);border:2px solid var(--danger);border-radius:var(--radius-sm);padding:10px 12px;margin:12px 0 0;font-size:15px}
+.meta{font-size:13px;color:var(--muted);margin:10px 2px 0}
+.overview{margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden}
+.overview .filtro{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line);font-size:14px}
+.overview .filtro button{min-height:34px;padding:6px 12px;font-size:13px}
+.overview button.item{display:grid;grid-template-columns:1.6em 1fr auto;gap:8px;align-items:center;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent}
+.overview button.item:last-child{border-bottom:0}
+.overview button.item.atual{background:var(--accent-soft)}
+.overview .n{color:var(--muted);font-size:13px;text-align:right}
+.overview .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.overview .tags{display:flex;gap:6px;align-items:center}
+.badge{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;white-space:nowrap}
+.badge.alta{background:var(--alta)} .badge.normal{background:var(--normal)} .badge.baixa{background:var(--baixa)}
+.st{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;border:1.5px solid var(--line);color:var(--muted);white-space:nowrap}
+.st-na_fila,.st-enviando{border-color:var(--orange);color:var(--orange)}
+.st-enviado{border-color:var(--accent);color:var(--accent)}
+.st-arquivado{border-color:var(--muted);color:var(--muted);text-decoration:line-through}
+.st-pulado{border-color:var(--line);color:var(--muted);text-decoration:line-through}
+.st-erro{border-color:var(--danger);color:var(--danger)}
+.card{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px}
+.card h2{font-size:21px;line-height:1.25;margin:0 0 6px;overflow-wrap:anywhere}
+.card .hdr-tags{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.card .jid{font-size:12px;color:var(--muted);margin-top:6px;overflow-wrap:anywhere}
+.nota-fila{margin-top:10px;font-size:14px;color:var(--orange-ink);background:var(--orange-soft);border-radius:var(--radius-sm);padding:8px 10px}
+.nota-erro{margin-top:10px;font-size:14px;color:var(--danger);background:var(--danger-soft);border-radius:var(--radius-sm);padding:8px 10px;font-weight:700}
+dl{margin:14px 0 0}
+dt{font-size:13px;font-weight:700;color:var(--muted);margin-top:12px}
+dd{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.nota-campo{margin-top:10px;font-size:14px;background:var(--accent-soft);border-radius:var(--radius-sm);padding:8px 10px;white-space:pre-wrap;overflow-wrap:anywhere}
+.chat{margin-top:16px;padding:12px;border-radius:var(--radius-lg);background:var(--pend-bg);border-left:5px solid var(--pend-line)}
+.chat h3,.sug h3{font-size:14px;margin:0 0 8px}
+.bubble{background:var(--in-bubble);border:1px solid var(--in-border);border-radius:4px 14px 14px 14px;padding:8px 11px;margin:6px 28px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.sug{margin-top:14px}
+.bubble.out{background:var(--out-bubble);border-color:var(--out-border);border-radius:14px 4px 14px 14px;margin:6px 0 0 28px}
+.nota{margin-top:8px;font-size:14px;color:var(--warn-ink);background:var(--danger-soft);border-radius:var(--radius-sm);padding:8px 10px}
+label{display:block;font-size:14px;font-weight:700;margin-top:16px}
+textarea,input[type=text],input[type=email],input[type=password]{width:100%;font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:var(--radius-sm);padding:10px;margin-top:6px}
+textarea{min-height:130px;resize:vertical}
+.acoes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.btn-aprovar{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn-editar{border-color:var(--normal);color:var(--normal);font-weight:700}
+.btn-arquivar{border-color:var(--danger);color:var(--danger)}
+.btn-pular{color:var(--muted)}
+.btn-desfazer{grid-column:1/-1;color:var(--muted)}
+.erro{color:var(--danger);font-size:14px;font-weight:700;margin-top:8px}
+.ok-msg{color:var(--accent);font-size:14px;font-weight:700;margin-top:8px}
+.arq{margin-top:12px;padding:12px;border:1.5px dashed var(--danger);border-radius:var(--radius-sm)}
+.arq label{margin-top:0}
+.arq button{width:100%;margin-top:8px;background:var(--danger);border-color:var(--danger);color:#fff;font-weight:700}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion: reduce){.toast{transition:none}}
+.vazio{margin-top:16px;color:var(--muted)}
+.login-wrap{display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px}
+.login-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:24px}
+.login-card h1{font-size:20px;margin:0 0 6px;text-align:center}
+.login-card p{color:var(--muted);font-size:14px;margin:0 0 10px;text-align:center}
+.campo{margin-top:14px}
+.campo label{margin-top:0}
+.login-card button[type=submit]{width:100%;margin-top:18px;background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.linklike{display:block;margin:14px auto 0;min-height:auto;padding:4px 0;border:0;background:none;color:var(--normal);text-decoration:underline;font-size:14px}
+.bloco-esqueci{margin-top:6px;padding-top:6px;border-top:1px solid var(--line)}
+.bloco-esqueci button{width:100%;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+"use strict";
+
+// ---------- configuração e cliente supabase ----------
+var cfg = window.PAINEL_CONFIG;
+var sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_PUBLISHABLE_KEY);
+var TABELA = 'whatsapp_painel';
+var STATUS_DECIDIVEIS = ['pendente','pulado','erro'];
+var STATUS_DESFAZIVEIS = ['na_fila','pulado','erro'];
+
+// ---------- estado em memória (a única coisa persistida é a sessão do próprio supabase-js) ----------
+var sessao = null;
+var recuperando = false;
+var convs = [];
+var idx = 0;
+var verGeral = false;
+var soPendentes = true;
+var carregando = false;
+var salvando = false;
+var ultimaAtualizacao = null;
+var erroCarregamento = '';
+var semAcesso = false;
+var uiState = {};   // id -> {armado, arqAberto, motivoDraft, erro}
+var drafts = {};    // id -> texto digitado em "Texto a enviar" (não gravado ainda)
+
+// estado da tela de login / recuperação de senha
+var loginEmail='', loginSenha='', loginErro='', loginCarregando=false;
+var esqueciAberto=false, esqueciEmail='', esqueciMsg='', esqueciCarregando=false;
+var recSenha='', recErro='', recCarregando=false;
+
+function estado(id){
+  if(!uiState[id]) uiState[id] = {armado:false, arqAberto:false, motivoDraft:'', erro:''};
+  return uiState[id];
+}
+
+// ---------- utilitários de DOM (sem innerHTML com dado cru: tudo via textContent) ----------
+function el(tag, attrs, kids){
+  var e = document.createElement(tag);
+  if(attrs){
+    for(var k in attrs){
+      if(attrs[k]==null) continue;
+      if(k==='class') e.className = attrs[k];
+      else if(k==='text') e.textContent = attrs[k];
+      else if(k.slice(0,2)==='on') e.addEventListener(k.slice(2), attrs[k]);
+      else e.setAttribute(k, attrs[k]);
+    }
+  }
+  (kids||[]).forEach(function(c){
+    if(c!=null) e.appendChild(typeof c==='string' ? document.createTextNode(c) : c);
+  });
+  return e;
+}
+function ou(v){ return (v!=null && String(v).trim()!=='') ? String(v) : '—'; }
+function prioridadeOuPadrao(p){ return (p==='alta'||p==='baixa') ? p : 'normal'; }
+
+var toastTimer;
+function toast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('on'); }, 2400);
+}
+
+function traduzErroAuth(err){
+  var m = (err && err.message) || '';
+  if(/invalid login credentials/i.test(m)) return 'E-mail ou senha incorretos.';
+  if(/email not confirmed/i.test(m)) return 'E-mail ainda não confirmado.';
+  return m || 'Erro ao autenticar.';
+}
+
+// ---------- ordenação e regras de negócio ----------
+function pesoPrioridade(p){
+  var mapa = {alta:0, normal:1, baixa:2};
+  return mapa[prioridadeOuPadrao(p)];
+}
+function ordenar(lista){
+  return lista.slice().sort(function(a,b){
+    var d = pesoPrioridade(a.prioridade) - pesoPrioridade(b.prioridade);
+    if(d!==0) return d;
+    return Number(a.id) - Number(b.id);
+  });
+}
+function pareceInstrucao(t){
+  var s = (t||'').trim();
+  if(/^[\(\[]/.test(s)) return true;
+  var l = s.toLowerCase();
+  return l.indexOf('você')>=0 || l.indexOf('dê play')>=0 || l.indexOf('transcrever')>=0;
+}
+function horaSaoPaulo(ts){
+  if(!ts) return '';
+  try{
+    return new Date(ts).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit'});
+  }catch(e){ return ''; }
+}
+function textoCampoInicial(c){
+  if(Object.prototype.hasOwnProperty.call(drafts, c.id)) return drafts[c.id];
+  return c.texto_final || c.resposta_sugerida || '';
+}
+function statusInfo(c){
+  switch(c.status){
+    case 'pendente': return {label:'Pendente'};
+    case 'na_fila': return {label:'Na fila'};
+    case 'enviando': return {label:'Enviando'};
+    case 'enviado': return {label:'Enviado '+horaSaoPaulo(c.executado_em)};
+    case 'arquivado': return {label:'Arquivado '+horaSaoPaulo(c.executado_em)};
+    case 'pulado': return {label:'Pulado'};
+    case 'erro': return {label:'Erro'};
+    default: return {label: c.status || '—'};
+  }
+}
+
+// ---------- autenticação ----------
+sb.auth.getSession().then(function(res){
+  sessao = res.data.session;
+  render();
+  if(sessao) carregarConvs();
+});
+
+sb.auth.onAuthStateChange(function(event, session){
+  if(event === 'PASSWORD_RECOVERY'){
+    recuperando = true;
+    sessao = session;
+    render();
+    return;
+  }
+  var tinhaSessao = !!sessao;
+  sessao = session;
+  if(event === 'SIGNED_OUT'){
+    convs=[]; idx=0; drafts={}; uiState={}; semAcesso=false; erroCarregamento='';
+  }
+  render();
+  if(session && !recuperando && (!tinhaSessao || event==='SIGNED_IN')){
+    carregarConvs();
+  }
+});
+
+function entrar(email, senha, cb){
+  sb.auth.signInWithPassword({email:email, password:senha}).then(function(res){ cb(res.error); });
+}
+function esqueciSenha(email, cb){
+  sb.auth.resetPasswordForEmail(email, {redirectTo: location.origin + location.pathname}).then(function(res){ cb(res.error); });
+}
+function definirNovaSenha(senha, cb){
+  sb.auth.updateUser({password:senha}).then(function(res){
+    if(!res.error) recuperando = false;
+    cb(res.error);
+  });
+}
+function sair(){ sb.auth.signOut(); }
+
+// ---------- carregamento dos dados ----------
+function carregarConvs(){
+  carregando = true; erroCarregamento = ''; render();
+  var desde = new Date(Date.now() - 24*60*60*1000).toISOString();
+  var filtro = 'status.in.(pendente,na_fila,enviando,pulado,erro),and(status.in.(enviado,arquivado),executado_em.gte.'+desde+')';
+  sb.from(TABELA).select('*').or(filtro).then(function(res){
+    carregando = false;
+    if(res.error){
+      erroCarregamento = 'Erro ao carregar os dados: ' + res.error.message;
+      render();
+      return;
+    }
+    var idAtual = convs[idx] ? convs[idx].id : null;
+    convs = ordenar(res.data || []);
+    semAcesso = convs.length === 0;
+    ultimaAtualizacao = new Date();
+    // mantém o cartão que estava aberto, sem perder o texto em edição
+    if(idAtual != null){
+      var k = convs.findIndex(function(c){ return c.id === idAtual; });
+      idx = k>=0 ? k : Math.min(idx, Math.max(convs.length-1, 0));
+    } else if(soPendentes){
+      var p = convs.findIndex(function(c){ return c.status === 'pendente'; });
+      idx = p>=0 ? p : 0;
+    } else {
+      idx = 0;
+    }
+    render();
+  });
+}
+setInterval(function(){
+  // não recarrega enquanto você digita (evita perder o foco do campo)
+  var tag = document.activeElement ? document.activeElement.tagName : '';
+  if(tag==='INPUT' || tag==='TEXTAREA') return;
+  if(sessao && !recuperando && !salvando) carregarConvs();
+}, 60000);
+
+// ---------- navegação ----------
+function irPara(k){ if(k>=0 && k<convs.length){ idx=k; render(true); } }
+function proximoPendente(apos){
+  var i;
+  for(i=apos+1;i<convs.length;i++) if(convs[i].status==='pendente') return i;
+  for(i=0;i<=apos && i<convs.length;i++) if(convs[i].status==='pendente') return i;
+  return -1;
+}
+function avancar(){
+  var p = proximoPendente(idx);
+  if(p>=0) idx = p;
+  render(true);
+}
+
+// ---------- gravação no banco ----------
+function gravar(conv, payload, statusPermitidos, aoTerminar){
+  salvando = true; render();
+  sb.from(TABELA).update(payload).eq('id', conv.id).in('status', statusPermitidos).select().then(function(res){
+    salvando = false;
+    if(res.error){
+      estado(conv.id).erro = 'Erro ao gravar: ' + res.error.message;
+      render();
+      return;
+    }
+    if(!res.data || res.data.length===0){
+      estado(conv.id).erro = 'Não foi possível gravar: o status mudou. Recarregando…';
+      render();
+      carregarConvs();
+      return;
+    }
+    var atualizado = res.data[0];
+    var k = convs.findIndex(function(c){ return c.id===conv.id; });
+    if(k>=0) convs[k] = atualizado;
+    var est = estado(conv.id);
+    est.erro=''; est.armado=false; est.arqAberto=false;
+    toast('Gravado ✓');
+    if(aoTerminar) aoTerminar(); else render();
+  });
+}
+
+function aprovar(conv){
+  var sug = conv.resposta_sugerida;
+  if(!sug || sug.trim()===''){
+    estado(conv.id).erro = 'Sem sugestão; use Editar.';
+    render();
+    return;
+  }
+  var est = estado(conv.id);
+  if(pareceInstrucao(sug) && !est.armado){
+    est.armado = true; est.erro = '';
+    render();
+    return;
+  }
+  gravar(conv, {
+    acao:'enviar', texto_final: sug, status:'na_fila', decidido_em: new Date().toISOString(), motivo: null
+  }, STATUS_DECIDIVEIS, avancar);
+}
+
+function editar(conv){
+  var texto = (Object.prototype.hasOwnProperty.call(drafts, conv.id) ? drafts[conv.id] : textoCampoInicial(conv)).trim();
+  if(texto===''){
+    estado(conv.id).erro = 'O texto está vazio.';
+    render();
+    return;
+  }
+  gravar(conv, {
+    acao:'enviar', texto_final: texto, status:'na_fila', decidido_em: new Date().toISOString(), motivo: null
+  }, STATUS_DECIDIVEIS, avancar);
+}
+
+function abrirArquivar(conv){
+  var est = estado(conv.id);
+  est.arqAberto = true; est.erro = '';
+  render();
+  var m = document.getElementById('motivo-'+conv.id);
+  if(m) m.focus();
+}
+function confirmarArquivar(conv){
+  var motivo = estado(conv.id).motivoDraft.replace(/\s+/g,' ').trim();
+  if(!motivo){
+    estado(conv.id).erro = 'Informe o motivo do arquivamento.';
+    render();
+    return;
+  }
+  gravar(conv, {
+    acao:'arquivar', motivo: motivo, texto_final: null, status:'na_fila', decidido_em: new Date().toISOString()
+  }, STATUS_DECIDIVEIS, avancar);
+}
+
+function pular(conv){
+  gravar(conv, {
+    acao:'pular', status:'pulado', decidido_em: new Date().toISOString()
+  }, STATUS_DECIDIVEIS, avancar);
+}
+
+function desfazer(conv){
+  salvando = true; render();
+  sb.from(TABELA).update({status:'pendente', acao:null, texto_final:null, motivo:null, decidido_em:null})
+    .eq('id', conv.id).in('status', STATUS_DESFAZIVEIS).select().then(function(res){
+      salvando = false;
+      if(res.error){
+        estado(conv.id).erro = 'Erro ao desfazer: ' + res.error.message;
+        render();
+        return;
+      }
+      if(!res.data || res.data.length===0){
+        estado(conv.id).erro = 'Não dá para desfazer: o bot já pegou/enviou.';
+        render();
+        return;
+      }
+      var atualizado = res.data[0];
+      var k = convs.findIndex(function(c){ return c.id===conv.id; });
+      if(k>=0) convs[k] = atualizado;
+      delete drafts[conv.id];
+      estado(conv.id).erro = '';
+      toast('Gravado ✓');
+      render();
+    });
+}
+
+// ---------- telas ----------
+function telaLogin(){
+  var wrap = el('div',{class:'login-wrap'});
+  var card = el('div',{class:'login-card'});
+  card.appendChild(el('h1',{text:'Painel WhatsApp'}));
+
+  var inEmail = el('input',{type:'email', id:'login-email', autocomplete:'email'});
+  inEmail.value = loginEmail;
+  inEmail.addEventListener('input', function(e){ loginEmail = e.target.value; });
+  var inSenha = el('input',{type:'password', id:'login-senha', autocomplete:'current-password'});
+  inSenha.value = loginSenha;
+  inSenha.addEventListener('input', function(e){ loginSenha = e.target.value; });
+
+  var form = el('form',{},[
+    el('div',{class:'campo'},[el('label',{for:'login-email', text:'E-mail'}), inEmail]),
+    el('div',{class:'campo'},[el('label',{for:'login-senha', text:'Senha'}), inSenha])
+  ]);
+  var btnEntrar = el('button',{type:'submit', text: loginCarregando ? 'Entrando…' : 'Entrar', disabled: loginCarregando?'':null});
+  form.appendChild(btnEntrar);
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!loginEmail || !loginSenha){ loginErro='Informe e-mail e senha.'; render(); return; }
+    loginCarregando = true; loginErro=''; render();
+    entrar(loginEmail, loginSenha, function(err){
+      loginCarregando = false;
+      if(err){ loginErro = traduzErroAuth(err); render(); }
+    });
+  });
+  card.appendChild(form);
+
+  if(loginErro) card.appendChild(el('div',{class:'erro', role:'alert', text:loginErro}));
+
+  card.appendChild(el('button',{type:'button', class:'linklike', text:'Esqueci a senha', onclick:function(){
+    esqueciAberto = !esqueciAberto; esqueciMsg=''; render();
+  }}));
+
+  if(esqueciAberto){
+    var inEsq = el('input',{type:'email', id:'esqueci-email'});
+    inEsq.value = esqueciEmail;
+    inEsq.addEventListener('input', function(e){ esqueciEmail = e.target.value; });
+    var bloco = el('div',{class:'bloco-esqueci'},[
+      el('div',{class:'campo'},[el('label',{for:'esqueci-email', text:'Seu e-mail para receber o link'}), inEsq]),
+      el('button',{type:'button', text: esqueciCarregando?'Enviando…':'Enviar link', disabled: esqueciCarregando?'':null, onclick:function(){
+        if(!esqueciEmail){ esqueciMsg='Informe o e-mail.'; render(); return; }
+        esqueciCarregando = true; esqueciMsg=''; render();
+        esqueciSenha(esqueciEmail, function(err){
+          esqueciCarregando = false;
+          esqueciMsg = err ? traduzErroAuth(err) : 'Link enviado! Confira seu e-mail.';
+          render();
+        });
+      }})
+    ]);
+    if(esqueciMsg) bloco.appendChild(el('div',{class: /enviado/.test(esqueciMsg) ? 'ok-msg':'erro', text:esqueciMsg}));
+    card.appendChild(bloco);
+  }
+
+  wrap.appendChild(card);
+  return wrap;
+}
+
+function telaRecuperacao(){
+  var wrap = el('div',{class:'login-wrap'});
+  var card = el('div',{class:'login-card'});
+  card.appendChild(el('h1',{text:'Nova senha'}));
+  card.appendChild(el('p',{text:'Defina uma nova senha para continuar.'}));
+
+  var inSenha = el('input',{type:'password', id:'rec-senha', autocomplete:'new-password'});
+  inSenha.value = recSenha;
+  inSenha.addEventListener('input', function(e){ recSenha = e.target.value; });
+
+  var form = el('form',{},[el('div',{class:'campo'},[el('label',{for:'rec-senha', text:'Nova senha'}), inSenha])]);
+  form.appendChild(el('button',{type:'submit', text: recCarregando?'Salvando…':'Salvar nova senha', disabled: recCarregando?'':null}));
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!recSenha || recSenha.length<6){ recErro='A senha precisa ter pelo menos 6 caracteres.'; render(); return; }
+    recCarregando = true; recErro=''; render();
+    definirNovaSenha(recSenha, function(err){
+      recCarregando = false;
+      if(err){ recErro = traduzErroAuth(err); render(); return; }
+      recSenha = '';
+      toast('Senha atualizada ✓');
+      render();
+      if(sessao) carregarConvs();
+    });
+  });
+  card.appendChild(form);
+  if(recErro) card.appendChild(el('div',{class:'erro', role:'alert', text:recErro}));
+  wrap.appendChild(card);
+  return wrap;
+}
+
+function painelVisaoGeral(){
+  var box = el('div',{class:'overview'});
+  box.appendChild(el('div',{class:'filtro'},[
+    el('span',{text:'Só pendentes'}),
+    el('button',{text: soPendentes?'Sim':'Não', 'aria-pressed': soPendentes?'true':'false', onclick:function(){
+      soPendentes = !soPendentes; render();
+    }})
+  ]));
+  var lista = soPendentes ? convs.filter(function(c){ return c.status==='pendente'; }) : convs;
+  if(!lista.length){
+    box.appendChild(el('p',{class:'vazio', text:'Nenhuma conversa pendente.'}));
+    return box;
+  }
+  lista.forEach(function(cv){
+    var kReal = convs.indexOf(cv);
+    var info = statusInfo(cv);
+    var pr = prioridadeOuPadrao(cv.prioridade);
+    box.appendChild(el('button',{class: 'item'+(kReal===idx?' atual':''), onclick:function(){
+      idx = kReal; verGeral=false; render(true);
+    }},[
+      el('span',{class:'n', text:String(kReal+1)}),
+      el('span',{class:'nm', text: ou(cv.contato)}),
+      el('span',{class:'tags'},[
+        el('span',{class:'badge '+pr, text:pr}),
+        el('span',{class:'st st-'+cv.status, text:info.label})
+      ])
+    ]));
+  });
+  return box;
+}
+
+function cartao(c){
+  var pr = prioridadeOuPadrao(c.prioridade);
+  var info = statusInfo(c);
+  var est = estado(c.id);
+  var card = el('article',{class:'card', id:'cartao'});
+
+  card.appendChild(el('h2',{text: ou(c.contato)}));
+  card.appendChild(el('div',{class:'hdr-tags'},[
+    el('span',{class:'badge '+pr, text:'prioridade '+pr}),
+    el('span',{class:'st st-'+c.status, text:info.label})
+  ]));
+  card.appendChild(el('div',{class:'jid', text: ou(c.jid)}));
+
+  if(c.status==='na_fila'){
+    card.appendChild(el('div',{class:'nota-fila', text:'Na fila — o bot envia em até 10 min'}));
+  }
+  if(c.status==='erro' && c.status_detalhe){
+    card.appendChild(el('div',{class:'nota-erro', text:'Erro: '+c.status_detalhe}));
+  }
+
+  card.appendChild(el('dl',null,[
+    el('dt',{text:'Quem é'}), el('dd',{text: ou(c.quem_e)}),
+    el('dt',{text:'Última mensagem em'}), el('dd',{text: ou(c.ultima_msg_em)}),
+    el('dt',{text:'Histórico resumido'}), el('dd',{text: ou(c.historico_resumido)}),
+    el('dt',{text:'Já respondeu'}), el('dd',{text: ou(c.ja_respondeu)})
+  ]));
+
+  if(c.nota && String(c.nota).trim()!==''){
+    card.appendChild(el('div',{class:'nota-campo', text: c.nota}));
+  }
+
+  var pendList = Array.isArray(c.mensagens_pendentes) ? c.mensagens_pendentes : [];
+  var chat = el('section',{class:'chat'},[el('h3',{text:'Mensagens pendentes'})]);
+  if(!pendList.length){
+    chat.appendChild(el('div',{class:'bubble', text:'—'}));
+  } else {
+    pendList.forEach(function(m){
+      var txt = '['+ou(m && m.hora)+'] '+ou(m && m.texto);
+      chat.appendChild(el('div',{class:'bubble', text:txt}));
+    });
+  }
+  card.appendChild(chat);
+
+  var temSugestao = c.resposta_sugerida && c.resposta_sugerida.trim()!=='';
+  var sug = el('section',{class:'sug'},[
+    el('h3',{text:'Resposta sugerida'}),
+    el('div',{class:'bubble out', text: temSugestao ? c.resposta_sugerida : '— sem sugestão —'})
+  ]);
+  if(est.armado){
+    sug.appendChild(el('div',{class:'nota', text:'Essa sugestão parece uma instrução, não uma mensagem para o contato. Toque em Aprovar de novo para confirmar o envio deste texto.'}));
+  }
+  card.appendChild(sug);
+
+  var taId = 'texto-'+c.id;
+  var ta = el('textarea',{id:taId, rows:'6'});
+  ta.value = textoCampoInicial(c);
+  ta.addEventListener('input', function(){ drafts[c.id] = ta.value; });
+  card.appendChild(el('label',{for:taId, text:'Texto a enviar'}));
+  card.appendChild(ta);
+
+  var podeDecidir = STATUS_DECIDIVEIS.indexOf(c.status)>=0;
+  var podeDesfazer = STATUS_DESFAZIVEIS.indexOf(c.status)>=0;
+  var desabilitado = salvando || !podeDecidir;
+
+  card.appendChild(el('div',{class:'acoes'},[
+    el('button',{class:'btn-aprovar', text: est.armado?'Toque de novo para confirmar':'Aprovar', disabled: desabilitado?'':null, onclick:function(){ aprovar(c); }}),
+    el('button',{class:'btn-editar', text:'Editar', disabled: desabilitado?'':null, onclick:function(){ editar(c); }}),
+    el('button',{class:'btn-arquivar', text:'Arquivar', disabled: desabilitado?'':null, 'aria-expanded': est.arqAberto?'true':'false', onclick:function(){ abrirArquivar(c); }}),
+    el('button',{class:'btn-pular', text:'Pular', disabled: desabilitado?'':null, onclick:function(){ pular(c); }}),
+    el('button',{class:'btn-desfazer', text:'Desfazer', disabled: (salvando || !podeDesfazer)?'':null, onclick:function(){ desfazer(c); }})
+  ]));
+
+  if(est.arqAberto){
+    var motivoId = 'motivo-'+c.id;
+    var mi = el('input',{type:'text', id:motivoId});
+    mi.value = est.motivoDraft;
+    mi.addEventListener('input', function(){ est.motivoDraft = mi.value; });
+    mi.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); confirmarArquivar(c); } });
+    card.appendChild(el('div',{class:'arq'},[
+      el('label',{for:motivoId, text:'Motivo do arquivamento (obrigatório)'}),
+      mi,
+      el('button',{text:'Confirmar arquivamento', disabled: salvando?'':null, onclick:function(){ confirmarArquivar(c); }})
+    ]));
+  }
+
+  if(est.erro) card.appendChild(el('div',{class:'erro', role:'alert', text: est.erro}));
+  return card;
+}
+
+function montarApp(app){
+  app.appendChild(el('div',{class:'topbar'},[
+    el('h1',{text:'Painel WhatsApp'}),
+    el('button',{class:'btn-sair', text:'Sair', onclick: sair})
+  ]));
+
+  var N = convs.length;
+  var decididas = convs.filter(function(cv){ return cv.status!=='pendente'; }).length;
+
+  var top = el('div',{class:'top'},[
+    el('div',{class:'nav'},[
+      el('button',{text:'◀ Anterior', disabled: idx<=0?'':null, onclick:function(){ irPara(idx-1); }}),
+      el('div',{class:'counter', 'aria-live':'polite'},[el('b',{text:'Conversa '+(N?idx+1:0)+' de '+N}), decididas+' decidida(s)']),
+      el('button',{text:'Próxima ▶', disabled: idx>=N-1?'':null, onclick:function(){ irPara(idx+1); }})
+    ]),
+    el('div',{class:'tools'},[
+      el('button',{text:'Visão geral', 'aria-pressed': verGeral?'true':'false', onclick:function(){ verGeral=!verGeral; render(); }}),
+      el('button',{text: carregando?'Atualizando…':'Atualizar', disabled: carregando?'':null, onclick:function(){ carregarConvs(); }})
+    ])
+  ]);
+  app.appendChild(top);
+
+  app.appendChild(el('p',{class:'meta', text: ultimaAtualizacao
+    ? ('Atualizado às '+ultimaAtualizacao.toLocaleTimeString('pt-BR',{hour:'2-digit', minute:'2-digit'}))
+    : 'Carregando…'}));
+
+  if(erroCarregamento){
+    app.appendChild(el('div',{class:'avisos', role:'alert', text: erroCarregamento}));
+  } else if(semAcesso && !carregando){
+    app.appendChild(el('div',{class:'avisos', role:'alert', text:'Seu usuário não tem acesso ao painel.'}));
+  }
+
+  if(verGeral) app.appendChild(painelVisaoGeral());
+
+  if(!N){
+    if(!erroCarregamento && !semAcesso) app.appendChild(el('p',{class:'vazio', text:'Nenhuma conversa no momento.'}));
+  } else {
+    app.appendChild(cartao(convs[idx]));
+  }
+}
+
+function render(rolar){
+  var app = document.getElementById('app');
+  app.innerHTML = '';
+  if(!sessao){ app.appendChild(telaLogin()); return; }
+  if(recuperando){ app.appendChild(telaRecuperacao()); return; }
+  montarApp(app);
+  if(rolar){
+    var cd = document.getElementById('cartao');
+    if(cd) cd.scrollIntoView({block:'start'});
+    else window.scrollTo(0,0);
+  }
+}
+
+// atalhos de teclado opcionais (não interferem ao digitar nos campos)
+document.addEventListener('keydown', function(e){
+  var tag = document.activeElement ? document.activeElement.tagName : '';
+  if(tag==='INPUT' || tag==='TEXTAREA') return;
+  if(e.key==='ArrowLeft') irPara(idx-1);
+  else if(e.key==='ArrowRight') irPara(idx+1);
+});
+
+render();
+})();
+</script>
+</body>
+</html>
